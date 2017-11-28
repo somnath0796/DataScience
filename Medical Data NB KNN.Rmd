@@ -1,0 +1,90 @@
+---
+title: "Medical Data Analysis: Naive Bayes and KNN"
+output: html_notebook
+---
+
+
+```{r}
+install.packages("e1071")
+install.packages("anacor")
+```
+```{r}
+library(class)
+library(e1071)
+library(anacor)
+library(grDevices)
+```
+
+```{r}
+#Input Files and Cleaning
+train <- read.csv("Train.csv")
+test <- read.csv("Test.csv")
+train = train[2:12]
+test = test[2:12]
+
+data1 <- rbind(train, test)
+
+#Initial Shuffle
+set.seed(2651)
+grp<-runif(nrow(data1))
+
+data1<-data1[order(grp),]
+rownames(data1) = 0:(nrow(data1)-1)
+
+str(data1)
+head(data1)
+summary(data1[,1:10])
+table(data1$Pres)
+plot(data1$Pres, col = heat.colors(8, alpha=1))
+```
+
+```{r}
+#Data Scaling:
+normalize <- function(x){return ((x - min(x))/(max(x) - min(x))) }
+
+stdscale <- function(x){return ((x-mean(x))/sqrt(var(x)))}
+
+data_n <- as.data.frame(lapply(data1[1:10],normalize))
+summary(data_n)
+data_n1 <- as.data.frame(lapply(data1[1:10],stdscale))
+summary(data_n1)
+
+```
+
+```{r}
+#KNN algo
+
+if((round(sqrt(nrow(data_n)))%%2==0)){
+    k = round(sqrt(nrow(data_n)))+1
+}else{
+    k = round(sqrt(nrow(data_n)))
+}
+
+
+data_train <- data_n[1:621,]
+data_test <- data_n[622:777,]
+data_train_targ <- data1[1:621,11]
+data_test_targ <- data1[622:777,11]
+
+model1 <- knn(train = data_train, test = data_test, cl = data_train_targ, k = 7)
+
+table(predicted = model1, Orig = data_test_targ)
+print('')
+
+print(mean(model1==data_test_targ)*100.00)
+```
+```{r}
+data_nb <- cbind(data_n1,data1[,11])
+colnames(data_nb)[11] = "Pres"
+head(data_nb)
+
+model2 <- naiveBayes(Pres~., data=data1)
+predicted <- predict(model2,data1)
+
+table(Pred = predicted,Actual = data1[,11])
+
+mean(predicted==data1[,11])*100
+
+summary(data1)
+```
+
